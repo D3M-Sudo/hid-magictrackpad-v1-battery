@@ -1,6 +1,6 @@
 From: Damiano Gragnaniello <damianogragnaniello@gmail.com>
 Date: Wed, 15 Apr 2026 21:15:00 +0200
-Subject: [PATCH v2] HID: magicmouse: add battery reporting for Magic Trackpad v1
+Subject: [PATCH v3] HID: magicmouse: add battery reporting for Magic Trackpad v1
 
 The Magic Trackpad v1 (A1339) reports battery level via Bluetooth using
 Report ID 0x47. This patch adds support for parsing this report and 
@@ -9,12 +9,17 @@ correctly display the battery percentage.
 
 Signed-off-by: Damiano Gragnaniello <damianogragnaniello@gmail.com>
 ---
+v3:
+  - Fixed changelog language (translated from Italian to English).
+  - Standardized patch naming and formatting for upstream submission.
+  - Ensured UTF-8 encoding and fixed minor alignment issues.
+
 v2:
-  - Rinominate le macro in TRACKPAD_V1_BATTERY_REPORT_ID per chiarezza.
-  - Aggiunto clamp_val() per garantire che la capacità resti nel range 0-100.
-  - Ripristinati i commenti originali del driver nel file sorgente.
-  - Ottimizzato l'allineamento del codice secondo le linee guida del kernel.
-  
+  - Rename macros to TRACKPAD_V1_BATTERY_REPORT_ID for clarity.
+  - Add clamp_val() to ensure battery capacity stays within 0-100 range.
+  - Restore original driver comments in the source file.
+  - Optimize code alignment according to kernel coding style guidelines.
+
  drivers/hid/hid-magicmouse.c | 56 ++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 56 insertions(+)
 
