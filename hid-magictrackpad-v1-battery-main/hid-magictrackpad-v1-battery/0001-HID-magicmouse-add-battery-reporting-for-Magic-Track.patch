@@ -1,0 +1,124 @@
+From: Damiano Gragnaniello <damianogragnaniello@gmail.com>
+Date: Wed, 15 Apr 2026 21:15:00 +0200
+Subject: [PATCH v2] HID: magicmouse: add battery reporting for Magic Trackpad v1
+
+The Magic Trackpad v1 (A1339) reports battery level via Bluetooth using
+Report ID 0x47. This patch adds support for parsing this report and 
+registering a power_supply interface so that userspace (upower) can 
+correctly display the battery percentage.
+
+Signed-off-by: Damiano Gragnaniello <damianogragnaniello@gmail.com>
+---
+v2:
+  - Rinominate le macro in TRACKPAD_V1_BATTERY_REPORT_ID per chiarezza.
+  - Aggiunto clamp_val() per garantire che la capacità resti nel range 0-100.
+  - Ripristinati i commenti originali del driver nel file sorgente.
+  - Ottimizzato l'allineamento del codice secondo le linee guida del kernel.
+  
+ drivers/hid/hid-magicmouse.c | 56 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 56 insertions(+)
+
+diff --git a/drivers/hid/hid-magicmouse.c b/drivers/hid/hid-magicmouse.c
+index 79a60c6..82b3c1d 100644
+--- a/drivers/hid/hid-magicmouse.c
++++ b/drivers/hid/hid-magicmouse.c
+@@ -62,6 +62,8 @@ MODULE_PARM_DESC(report_undeciphered, "Report undeciphered multi-touch state fie
+ #define TRACKPAD_REPORT_ID 0x28
+ #define TRACKPAD2_USB_REPORT_ID 0x02
+ #define TRACKPAD2_BT_REPORT_ID 0x31
++#define TRACKPAD_V1_BATTERY_REPORT_ID 0x47
++#define TRACKPAD_V1_BATTERY_TIMEOUT_SEC 60
+ 
+ #define MOUSE_REPORT_ID    0x29
+ #define MOUSE2_REPORT_ID   0x12
+@@ -156,6 +158,12 @@ struct magicmouse_sc {
+ 	struct delayed_work work;
+ 	struct timer_list battery_timer;
+ 
++	/* Magic Trackpad v1 battery support */
++	struct power_supply *battery;
++	struct power_supply_desc battery_desc;
++	char battery_name[64];
++	int battery_capacity;
++};
++
++static const enum power_supply_property magicmouse_v1_battery_props[] = {
++	POWER_SUPPLY_PROP_PRESENT,
++	POWER_SUPPLY_PROP_CAPACITY,
++	POWER_SUPPLY_PROP_SCOPE,
++	POWER_SUPPLY_PROP_STATUS,
++};
++
++static int magicmouse_v1_battery_get_property(struct power_supply *psy,
++					   enum power_supply_property psp,
++					   union power_supply_propval *val)
++{
++	struct magicmouse_sc *msc = power_supply_get_drvdata(psy);
++
++	switch (psp) {
++	case POWER_SUPPLY_PROP_PRESENT:
++		val->intval = 1;
++		break;
++	case POWER_SUPPLY_PROP_CAPACITY:
++		val->intval = msc->battery_capacity;
++		break;
++	case POWER_SUPPLY_PROP_SCOPE:
++		val->intval = POWER_SUPPLY_SCOPE_DEVICE;
++		break;
++	case POWER_SUPPLY_PROP_STATUS:
++		val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
++		break;
++	default:
++		return -EINVAL;
++	}
++	return 0;
++}
++
+ static int magicmouse_firm_touch(struct magicmouse_sc *msc)
+ {
+@@ -434,6 +442,16 @@ static int magicmouse_raw_event(struct hid_device *hdev,
+ 
+ 	switch (data[0]) {
++	case TRACKPAD_V1_BATTERY_REPORT_ID:
++		if (size < 2)
++			return 0;
++		if (msc->battery) {
++			msc->battery_capacity = clamp_val((int)data[1], 0, 100);
++			power_supply_changed(msc->battery);
++		}
++		return 0;
+ 	case TRACKPAD_REPORT_ID:
+ 	case TRACKPAD2_BT_REPORT_ID:
+ 		/* Expect four bytes of prefix, and N*9 bytes of touch data. */
+@@ -939,6 +957,32 @@ static int magicmouse_probe(struct hid_device *hdev,
+ 		magicmouse_fetch_battery(hdev);
+ 	}
+ 
++	if (id->product == USB_DEVICE_ID_APPLE_MAGICTRACKPAD &&
++	    id->vendor == USB_VENDOR_ID_APPLE) {
++		struct power_supply_config psy_cfg = {};
++
++		psy_cfg.drv_data = msc;
++		msc->battery_capacity = 0;
++		snprintf(msc->battery_name, sizeof(msc->battery_name),
++			 "hid-magictrackpad-v1-%s", dev_name(&hdev->dev));
++
++		msc->battery_desc.name           = msc->battery_name;
++		msc->battery_desc.type           = POWER_SUPPLY_TYPE_BATTERY;
++		msc->battery_desc.properties     = magicmouse_v1_battery_props;
++		msc->battery_desc.num_properties = ARRAY_SIZE(magicmouse_v1_battery_props);
++		msc->battery_desc.get_property   = magicmouse_v1_battery_get_property;
++
++		msc->battery = devm_power_supply_register(&hdev->dev,
++							  &msc->battery_desc,
++							  &psy_cfg);
++		if (IS_ERR(msc->battery)) {
++			hid_err(hdev, "can't register battery device\n");
++			msc->battery = NULL;
++		}
++	}
++
+ 	return 0;
+ }
+-- 
+2.34.1
