@@ -28,4 +28,28 @@ Validated on Linux Mint with Kernel 6.17. Raw HID Descriptor analysis:
 FEATURE(71)[FEATURE]  
   Usage(1) GenericDeviceControls.BatteryStrength  
   Logical Minimum(0)  
-  Logical Maximum(100)  
+  Logical Maximum(100)
+
+## How to Test and Apply
+
+### 1. Manual Compilation (The "Quick" Way)
+If you want to test the module without recompiling the entire kernel:
+1. Ensure you have kernel headers installed: `sudo apt install linux-headers-$(uname -r)`
+2. Download `hid-magicmouse.c` from this repo.
+3. Use a standard `Makefile` to build the `.ko` (kernel object) file.
+4. Unload the current driver and load yours:
+   ```bash
+   sudo rmmod hid_magicmouse
+   sudo insmod hid-magicmouse.ko
+
+### 2. Official Patching (Recommended)
+If you are a developer or want to include this in a custom build:
+1. Clone the Linux kernel source.
+2. Apply the patch: git am 0001-HID-magicmouse-add-battery-reporting-for-Magic-Track.patch
+3. Rebuild the hid-magicmouse module.
+
+### Stability & Safety
+Stability Test: This code has been stress-tested for 7 days on Linux Mint (Cinnamon) without system freezes or kernel panics.
+
+Disclaimer: Always back up your data before loading experimental kernel modules.
+Use dmesg -w to monitor system logs during the first load.
