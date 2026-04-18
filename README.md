@@ -49,7 +49,8 @@ If you are a developer or want to include this in a custom build:
 3. Rebuild the hid-magicmouse module.
 
 ### Stability & Safety
-Stability Test: This code has been stress-tested for 7 days on Linux Mint (Cinnamon) without system freezes or kernel panics.
+Stability Test: This code has been stress-tested for 7 days on Linux Mint (Cinnamon) without system
+freezes or kernel panics.
 
 Disclaimer: Always back up your data before loading experimental kernel modules.
 Use dmesg -w to monitor system logs during the first load.
