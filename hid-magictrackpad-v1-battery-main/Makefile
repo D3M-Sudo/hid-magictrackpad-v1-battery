@@ -2,9 +2,11 @@
 # Questo permette di testare la patch senza ricompilare tutto il kernel
 
 obj-m += hid-magicmouse.o
+PWD := $(shell pwd)
+KDIR := /lib/modules/$(shell uname -r)/build
 
 all:
-	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
+	$(MAKE) -C $(KDIR) M=$(PWD) modules
 
 clean:
-	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+	$(MAKE) -C $(KDIR) M=$(PWD) clean
