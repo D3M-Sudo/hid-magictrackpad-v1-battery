@@ -726,5 +726,5 @@ static struct hid_driver magicmouse_driver = {
 };
 module_hid_driver(magicmouse_driver);
 
-MODULE_LICENSE("GPL-2.0-only");
+MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Apple Magic Mouse/Trackpad driver with battery support");
